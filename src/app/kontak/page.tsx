@@ -54,8 +54,8 @@ export default function ContactPage() {
             </h1>
 
             <p className="mt-6 text-gray-600 max-w-2xl mx-auto">
-              Kami siap membantu Anda terkait layanan, investasi Syirkah,
-              komunitas, maupun pertanyaan lainnya.
+              Kami siap membantu Anda terkait layanan
+              komunitas maupun pertanyaan lainnya.
             </p>
           </header>
 
@@ -86,7 +86,7 @@ export default function ContactPage() {
                 <MapPin className="text-islamic-green-600 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Alamat</h3>
-                  <p className="text-gray-600">Jakarta Selatan, Indonesia</p>
+                  <p className="text-gray-600">Bandung, Indonesia</p>
                 </div>
               </div>
 

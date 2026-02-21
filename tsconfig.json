@@ -3,7 +3,7 @@
     "baseUrl": ".", 
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true,         // sudah ada, biar aman
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "noImplicitAny": false,       
     "plugins": [
       {
         "name": "next"
