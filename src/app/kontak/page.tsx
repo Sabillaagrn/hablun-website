@@ -20,10 +20,34 @@ export default function ContactPage() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert("Pesan berhasil dikirim 🚀")
-    setForm({ name: "", email: "", message: "" })
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mengirim pesan")
+      }
+
+      alert("Pesan berhasil dikirim 🚀")
+      setForm({ name: "", email: "", message: "" })
+    } catch (error) {
+      alert("Terjadi kesalahan saat mengirim pesan 😢")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -177,9 +201,10 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-islamic-green-600 text-white py-3 rounded-xl hover:bg-islamic-green-700 transition font-medium"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 bg-islamic-green-600 text-white py-3 rounded-xl hover:bg-islamic-green-700 transition font-medium disabled:opacity-70"
               >
-                Kirim Pesan
+                {loading ? "Mengirim..." : "Kirim Pesan"}
                 <Send size={18} />
               </button>
             </form>
