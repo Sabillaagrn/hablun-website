@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     await resend.emails.send({
       from: "Hablun <contact@hablunhub.com>",
-      to: "1237050049@student.uinsgd.ac.id",
+      to: "marketing@hablunhub.com",
       replyTo: safeEmail,
       subject: `Pesan baru dari ${safeName} - Hablun Hub`,
 
@@ -57,88 +57,95 @@ ${safeMessage}
 `,
 
       html: `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Pesan Baru</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, sans-serif;">
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Pesan Baru</title>
+        </head>
 
-<!-- PREHEADER (agar snippet Gmail bagus) -->
-<div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-Pesan baru dari ${safeName} (${safeEmail}) melalui formulir website Hablun Hub.
-</div>
+        <body style="margin:0; padding:20px; background:#f4f6f8; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
 
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
-<tr>
-<td align="center">
+        <!-- SNIPPET FORCE -->
+        <span style="font-size:1px; color:#ffffff;">
+        Pesan dari ${safeName} (${safeEmail}) - ${safeMessage.substring(0, 80)}
+        </span>
 
-<table width="600" cellpadding="0" cellspacing="0"
-style="background:#ffffff; border-radius:12px; padding:30px; border:1px solid #e5e7eb;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+        <td align="center">
 
-<tr>
-<td>
-<h2 style="margin:0; color:#16a34a;">
-Pesan Baru dari Website
-</h2>
-<p style="margin:8px 0 20px 0; color:#6b7280; font-size:14px;">
-Seseorang mengirim pesan melalui formulir kontak.
-</p>
-<hr style="border:none; border-top:1px solid #e5e7eb;">
-</td>
-</tr>
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid #e5e7eb;">
 
-<tr>
-<td style="padding-top:20px; color:#374151; font-size:14px; line-height:1.6;">
+        <!-- HEADER -->
+        <tr>
+        <td style="padding:20px 25px; background:#16a34a;">
+        <h2 style="margin:0; color:#ffffff; font-size:18px;">
+        📩 Pesan Masuk Website
+        </h2>
+        </td>
+        </tr>
 
-<p style="margin:0 0 12px 0;">
-<strong>Nama</strong><br/>
-${safeName}
-</p>
+        <!-- BODY -->
+        <tr>
+        <td style="padding:25px; font-size:14px; line-height:1.7;">
 
-<p style="margin:0 0 12px 0;">
-<strong>Email</strong><br/>
-<a href="mailto:${safeEmail}" style="color:#16a34a; text-decoration:none;">
-${safeEmail}
-</a>
-</p>
+        <table width="100%" cellpadding="0" cellspacing="0">
 
-<p style="margin:20px 0 8px 0;">
-<strong>Pesan</strong>
-</p>
+        <tr>
+        <td style="padding:8px 0; width:120px; color:#6b7280;">
+        <strong>Nama</strong>
+        </td>
+        <td style="padding:8px 0;">
+        ${safeName}
+        </td>
+        </tr>
 
-<div style="
-background:#f9fafb;
-padding:15px;
-border-radius:8px;
-border:1px solid #e5e7eb;
-white-space:pre-line;">
-${safeMessage}
-</div>
+        <tr>
+        <td style="padding:8px 0; color:#6b7280;">
+        <strong>Email</strong>
+        </td>
+        <td style="padding:8px 0;">
+        <a href="mailto:${safeEmail}" style="color:#16a34a; text-decoration:none;">
+        ${safeEmail}
+        </a>
+        </td>
+        </tr>
 
-</td>
-</tr>
+        </table>
 
-<tr>
-<td style="padding-top:30px;">
-<hr style="border:none; border-top:1px solid #e5e7eb;">
-<p style="font-size:12px; color:#9ca3af; text-align:center; margin-top:15px;">
-© ${new Date().getFullYear()} Hablun Hub · Email otomatis dari hablunhub.com
-</p>
-</td>
-</tr>
+        <!-- MESSAGE BOX -->
+        <div style="
+        margin-top:20px;
+        padding:15px;
+        background:#f9fafb;
+        border:1px solid #e5e7eb;
+        white-space:pre-line;
+        ">
+        ${safeMessage}
+        </div>
 
-</table>
+        </td>
+        </tr>
 
-</td>
-</tr>
-</table>
+        <!-- FOOTER -->
+        <tr>
+        <td style="padding:15px 25px; background:#f9fafb; font-size:12px; color:#6b7280; text-align:center;">
+        Email otomatis dari hablunhub.com<br/>
+        © ${new Date().getFullYear()} Hablun Hub
+        </td>
+        </tr>
 
-</body>
-</html>
-`,
+        </table>
+
+        </td>
+        </tr>
+        </table>
+
+        </body>
+        </html>
+        `,
 
       headers: {
         "X-Entity-Ref-ID": crypto.randomUUID(),
