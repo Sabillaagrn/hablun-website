@@ -3,12 +3,30 @@
 import Image from "next/image"
 import { Download, Smartphone, ShieldCheck } from "lucide-react"
 import { useUser } from "../../features/landing/context/UserContext"
+import { useState } from "react"
 
 export default function DownloadPage() {
   const { user } = useUser()
+  const [isDownloading, setIsDownloading] = useState(false)
 
   // 🔹 Pilih hero image berdasarkan role
-  const heroImage = user?.role === "member" ? "/apk/hero1.jpeg" : "/apk/hero2.jpeg"
+  const heroImage =
+    user?.role === "member" ? "/apk/hero2.jpeg" : "/apk/hero1.jpeg"
+
+  // 🔐 secure download handler
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true)
+
+      // buka endpoint secure
+      window.open("/api/download-apk", "_blank")
+    } catch (err) {
+      console.error("Download failed:", err)
+      alert("Gagal mengunduh APK.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   return (
     <section className="relative pt-32 pb-24 bg-[#f8faf9] overflow-hidden">
@@ -32,8 +50,9 @@ export default function DownloadPage() {
                 </span>
               </h1>
               <p className="mt-6 text-gray-600 text-lg leading-relaxed max-w-xl">
-                Kelola komunitas, donasi, investasi syirkah, dan aktivitas ibadah
-                dalam satu aplikasi terintegrasi yang aman dan terpercaya.
+                Kelola komunitas, donasi, investasi syirkah, dan aktivitas
+                ibadah dalam satu aplikasi terintegrasi yang aman dan
+                terpercaya.
               </p>
             </div>
 
@@ -53,18 +72,21 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            {/* DOWNLOAD BUTTON */}
+            {/* 🔽 DOWNLOAD BUTTON (SECURE) */}
             {user && (
               <div className="pt-6">
-                <a
-                  href="/hablun-app.apk"
-                  download
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-islamic-green-600 text-white font-semibold text-lg shadow-xl hover:bg-islamic-green-700 hover:shadow-2xl transition-all duration-300"
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-islamic-green-600 text-white font-semibold text-lg shadow-xl hover:bg-islamic-green-700 hover:shadow-2xl transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Download size={22} />
-                  Download APK Sekarang
-                </a>
-                <p className="text-sm text-gray-400 mt-3">Versi terbaru • Android 8.0+</p>
+                  {isDownloading ? "Menyiapkan APK..." : "Download APK Sekarang"}
+                </button>
+
+                <p className="text-sm text-gray-400 mt-3">
+                  Versi terbaru • Android 8.0+
+                </p>
               </div>
             )}
           </div>
