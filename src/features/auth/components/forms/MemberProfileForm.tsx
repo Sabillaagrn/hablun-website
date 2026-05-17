@@ -10,16 +10,20 @@ import {
   Upload,
   ArrowRight,
   ArrowLeft,
-  Rocket,
   CheckCircle2,
   AlertCircle,
   ClipboardList,
   CreditCard,
   Loader2,
   Check,
+  Globe2,
+  Download,
+  FileText,
+  Mail,
+  FileType,
 } from "lucide-react"
 
-/* ======================== TYPES ======================== */
+/* ================= TYPES ================= */
 
 interface MemberForm {
   full_name: string
@@ -35,16 +39,19 @@ interface MemberForm {
   join_purpose: string
   profile_photo: string
   ktp_file: string
+  has_business: string
+  publish_to_umkm: string
+  umkm_submission_type: string
+  umkm_template_file: string
 }
 
 const steps = [
-  { id: 1, label: "Identitas",   icon: User },
+  { id: 1, label: "Identitas", icon: User },
   { id: 2, label: "Profesional", icon: Briefcase },
-  { id: 3, label: "Minat",       icon: Target },
-  { id: 4, label: "Verifikasi",  icon: ShieldCheck },
+  { id: 3, label: "Minat & Tujuan", icon: Target },
+  { id: 4, label: "Verifikasi", icon: ShieldCheck },
 ]
 
-/* ======================== MAIN PAGE ======================== */
 interface Props {
   onSuccess: () => void
 }
@@ -70,65 +77,104 @@ export default function MemberProfileForm({ onSuccess }: Props) {
     join_purpose: "",
     profile_photo: "",
     ktp_file: "",
+    has_business: "",
+    publish_to_umkm: "",
+    umkm_submission_type: "",
+    umkm_template_file: "",
   })
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target
-    setForm({ ...form, [name]: value })
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    })
   }
 
-  const uploadFile = async (file: File, bucket: string) => {
-    try {
-      const allowedTypes =
-        bucket === "ktp-files"
-          ? ["image/png", "image/jpeg", "image/jpg", "application/pdf"]
-          : ["image/png", "image/jpeg", "image/jpg"]
+  const uploadFile = async (file: File, fileType: string) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("type", fileType) 
 
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error("Format file tidak didukung")
-      }
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
 
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("bucket", bucket)
+    const data = await res.json()
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Upload gagal")
-      return data.url
-    } catch (err: any) {
-      alert("Upload gagal, menggunakan preview sementara")
-      return URL.createObjectURL(file) // fallback ke preview lokal
+    if (!res.ok) {
+      console.error("Upload API Error:", data.error)
+      throw new Error(data.error || "Gagal mengunggah file")
     }
+
+    return data.url
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!e.target.files?.[0]) return
+
     const file = e.target.files[0]
+
     setPhotoPreview(URL.createObjectURL(file))
+
     const url = await uploadFile(file, "profile-photos")
-    setForm({ ...form, profile_photo: url })
+
+    setForm({
+      ...form,
+      profile_photo: url,
+    })
   }
 
-  const handleKtpUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKtpUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!e.target.files?.[0]) return
+
     const file = e.target.files[0]
+
     setKtpReady(true)
+
     const url = await uploadFile(file, "ktp-files")
-    setForm({ ...form, ktp_file: url })
+
+    setForm({
+      ...form,
+      ktp_file: url,
+    })
+  }
+
+  // Handler baru untuk file UMKM Template
+  const handleTemplateUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!e.target.files?.[0]) return
+
+    const file = e.target.files[0]
+
+    // Upload file ke bucket partner-umkm/templates
+    const url = await uploadFile(file, "partner-umkm/templates")
+
+    setForm({
+      ...form,
+      umkm_template_file: url,
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     setLoading(true)
     setError(null)
 
     try {
       const res = await fetch("/api/profile/member", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(form),
       })
 
@@ -138,9 +184,7 @@ export default function MemberProfileForm({ onSuccess }: Props) {
         throw new Error(data.error || "Gagal menyimpan profil")
       }
 
-      // 🔥 panggil parent redirect
       onSuccess()
-
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -149,266 +193,635 @@ export default function MemberProfileForm({ onSuccess }: Props) {
   }
 
   return (
-    <section className="relative w-screen h-screen overflow-auto bg-gradient-to-b from-green-50 to-white py-10">
+    <section className="min-h-screen w-full bg-gradient-to-b from-green-50 via-white to-white py-10 px-4">
+      <div className="max-w-4xl mx-auto">
 
-      {/* Decorative Background */}
-      <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-islamic-green-400/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-islamic-green-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#16a34a08_1px,transparent_1px),linear-gradient(to_bottom,#16a34a08_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
-
-      <div className="relative max-w-2xl mx-auto px-6 space-y-10">
-
-        {/* Header */}
-        <header className="text-center">
-          <p className="text-xs tracking-[0.35em] uppercase text-islamic-green-600 mb-4">
-            Pendaftaran Anggota
+        {/* HEADER */}
+        <div className="text-center mb-10">
+          <p className="text-sm font-semibold tracking-[0.25em] uppercase text-islamic-green-600 mb-3">
+            Hablun Community
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight text-gray-900">
-            Lengkapi{" "}
-            <span className="bg-gradient-to-r from-islamic-green-600 via-islamic-green-700 to-islamic-green-800 bg-clip-text text-transparent">
-              Profil Anda
-            </span>
+
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+            Lengkapi Profil Anda
           </h1>
-          <p className="mt-4 text-sm text-gray-500">
-            Informasi ini membantu kami membangun koneksi terbaik untuk Anda.
+
+          <p className="mt-4 text-gray-500 max-w-xl mx-auto">
+            Informasi ini membantu komunitas mengenal Anda lebih baik dan membangun koneksi yang relevan.
           </p>
+        </div>
 
-          {/* Divider */}
-          <div className="flex items-center justify-center gap-4 mt-6">
-            <div className="h-px w-14 bg-islamic-green-400/50" />
-            <div className="w-2 h-2 bg-islamic-green-500 rounded-full" />
-            <div className="h-px w-14 bg-islamic-green-400/50" />
-          </div>
-        </header>
+        {/* STEP */}
+        <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm mb-6">
+          <StepIndicator
+            steps={steps}
+            currentStep={currentStep}
+            setCurrentStep={setCurrentStep}
+          />
+        </div>
 
-        {/* Step Indicator */}
-        <StepIndicator steps={steps} currentStep={currentStep} setCurrentStep={setCurrentStep} />
-
-        {/* Error */}
+        {/* ERROR */}
         {error && (
-          <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3">
-            <AlertCircle size={16} className="shrink-0" />
+          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-4">
+            <AlertCircle size={18} />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* FORM */}
+        <form onSubmit={handleSubmit}>
 
-          {currentStep === 1 && <Step1 form={form} handleChange={handleChange} photoPreview={photoPreview} handlePhotoUpload={handlePhotoUpload} setCurrentStep={setCurrentStep} />}
-          {currentStep === 2 && <Step2 form={form} handleChange={handleChange} setCurrentStep={setCurrentStep} />}
-          {currentStep === 3 && <Step3 form={form} handleChange={handleChange} setCurrentStep={setCurrentStep} />}
-          {currentStep === 4 && <Step4 form={form} handleKtpUpload={handleKtpUpload} ktpReady={ktpReady} loading={loading} setCurrentStep={setCurrentStep} />}
+          <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 md:p-8">
 
+            {currentStep === 1 && (
+              <Step1
+                form={form}
+                handleChange={handleChange}
+                photoPreview={photoPreview}
+                handlePhotoUpload={handlePhotoUpload}
+                setCurrentStep={setCurrentStep}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <Step2
+                form={form}
+                handleChange={handleChange}
+                setCurrentStep={setCurrentStep}
+              />
+            )}
+
+            {currentStep === 3 && (
+              <Step3
+                form={form}
+                setForm={setForm}
+                handleChange={handleChange}
+                handleTemplateUpload={handleTemplateUpload}
+                setCurrentStep={setCurrentStep}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <Step4
+                form={form}
+                handleKtpUpload={handleKtpUpload}
+                ktpReady={ktpReady}
+                loading={loading}
+                setCurrentStep={setCurrentStep}
+              />
+            )}
+
+          </div>
         </form>
       </div>
     </section>
   )
 }
 
-/* ======================== STEP COMPONENTS ======================== */
+/* ================= STEP 1 ================= */
 
-function Step1({ form, handleChange, photoPreview, handlePhotoUpload, setCurrentStep }: any) {
+function Step1({
+  form,
+  handleChange,
+  photoPreview,
+  handlePhotoUpload,
+  setCurrentStep,
+}: any) {
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {/* Foto Profil */}
-      <Card icon={<Camera size={18} strokeWidth={1.75} />} title="Foto Profil" desc="Foto terbaik untuk profil komunitas Anda">
-        <label htmlFor="photo-upload" className="block cursor-pointer">
-          <div className="flex items-center gap-5 p-5 rounded-2xl border-2 border-dashed border-islamic-green-200 bg-islamic-green-50/50 hover:border-islamic-green-400 hover:bg-islamic-green-50 transition-all">
+    <div className="space-y-8">
+
+      {/* PHOTO */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Informasi Pribadi
+        </h2>
+
+        <p className="text-sm text-gray-500 mb-6">
+          Lengkapi identitas dasar akun Anda.
+        </p>
+
+        <label
+          htmlFor="photo-upload"
+          className="cursor-pointer block"
+        >
+          <div className="border-2 border-dashed border-islamic-green-200 rounded-2xl p-5 flex items-center gap-5 hover:border-islamic-green-400 transition-all">
+
             {photoPreview ? (
-              <img src={photoPreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-islamic-green-400 shrink-0" />
+              <img
+                src={photoPreview}
+                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow"
+                alt="Preview"
+              />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-islamic-green-100 flex items-center justify-center shrink-0">
-                <User size={28} strokeWidth={1.5} className="text-islamic-green-500" />
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <Camera className="text-islamic-green-600" />
               </div>
             )}
+
             <div>
-              <p className="text-sm font-semibold text-gray-800">{photoPreview ? "Foto dipilih" : "Upload foto Anda"}</p>
-              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG · Maks 5MB · Disarankan 1:1</p>
-              <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-islamic-green-700 bg-islamic-green-100 px-3 py-1.5 rounded-lg">
-                <Upload size={12} /> {photoPreview ? "Ganti Foto" : "Pilih File"}
+              <p className="font-semibold text-gray-800">
+                Upload Foto Profil
+              </p>
+
+              <p className="text-sm text-gray-400 mt-1">
+                JPG / PNG maksimal 5MB
+              </p>
+
+              <div className="mt-3 inline-flex items-center gap-2 text-sm bg-islamic-green-100 text-islamic-green-700 px-4 py-2 rounded-xl">
+                <Upload size={14} />
+                Pilih File
               </div>
             </div>
           </div>
         </label>
-        <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-      </Card>
 
-      {/* Data Pribadi */}
-      <Card icon={<User size={18} strokeWidth={1.75} />} title="Data Pribadi" desc="Informasi dasar akun Anda">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nama Lengkap" required>
-            <input name="full_name" value={form.full_name} onChange={handleChange} placeholder="Budi Santoso" className={inputCls} required />
-          </Field>
-          <Field label="Username" required>
-            <input name="username" value={form.username} onChange={handleChange} placeholder="budi.santoso" className={inputCls} required />
-          </Field>
-          <Field label="No. WhatsApp" required>
-            <input name="whatsapp" value={form.whatsapp} onChange={handleChange} placeholder="08xxxxxxxxxx" className={inputCls} required />
-          </Field>
-          <Field label="Domisili">
-            <input name="domicile" value={form.domicile} onChange={handleChange} placeholder="Jakarta Selatan" className={inputCls} />
-          </Field>
-        </div>
-      </Card>
+        <input
+          id="photo-upload"
+          type="file"
+          className="hidden"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+        />
+      </div>
+
+      {/* FORM */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Field label="Nama Lengkap" required>
+          <input
+            name="full_name"
+            value={form.full_name}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="Budi Santoso"
+          />
+        </Field>
+
+        <Field label="Username" required>
+          <input
+            name="username"
+            value={form.username}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="budisantoso"
+          />
+        </Field>
+
+        <Field label="No WhatsApp" required>
+          <input
+            name="whatsapp"
+            value={form.whatsapp}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="08xxxxxxxxxx"
+          />
+        </Field>
+
+        <Field label="Domisili">
+          <input
+            name="domicile"
+            value={form.domicile}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="Bandung"
+          />
+        </Field>
+      </div>
 
       <div className="flex justify-end">
         <StepButton onClick={() => setCurrentStep(2)}>
-          Lanjutkan <ArrowRight size={16} />
+          Lanjutkan
+          <ArrowRight size={16} />
         </StepButton>
       </div>
     </div>
   )
 }
+
+/* ================= STEP 2 ================= */
 
 function Step2({ form, handleChange, setCurrentStep }: any) {
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <Card icon={<Briefcase size={18} strokeWidth={1.75} />} title="Informasi Profesional" desc="Ceritakan karir dan bisnis Anda">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Profesi">
-            <input name="profession" value={form.profession} onChange={handleChange} placeholder="Co-Founder, Konsultan..." className={inputCls} />
-          </Field>
-          <Field label="Industri">
-            <input name="industry" value={form.industry} onChange={handleChange} placeholder="Teknologi, F&B, Properti..." className={inputCls} />
-          </Field>
-          <Field label="Nama Bisnis" className="sm:col-span-2">
-            <input name="business_name" value={form.business_name} onChange={handleChange} placeholder="PT. Nama Perusahaan Anda" className={inputCls} />
-          </Field>
-        </div>
+    <div className="space-y-8">
 
-        <div className="h-px bg-gray-100 my-2" />
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Informasi Profesional
+        </h2>
 
-        <div className="space-y-4">
-          <Field label="Keahlian">
-            <textarea name="skills" value={form.skills} onChange={handleChange} placeholder="Mis: Digital marketing, business development, product design..." className={textareaCls} />
-          </Field>
-          <Field label="Kebutuhan Saat Ini">
-            <textarea name="current_needs" value={form.current_needs} onChange={handleChange} placeholder="Mis: Mencari mitra bisnis, investor, atau talent tertentu..." className={textareaCls} />
-          </Field>
-        </div>
-      </Card>
+        <p className="text-sm text-gray-500">
+          Ceritakan aktivitas profesional dan bisnis Anda.
+        </p>
+      </div>
 
-      <div className="flex gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Field label="Profesi">
+          <input
+            name="profession"
+            value={form.profession}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="Software Engineer"
+          />
+        </Field>
+
+        <Field label="Industri">
+          <input
+            name="industry"
+            value={form.industry}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="Teknologi"
+          />
+        </Field>
+
+        <Field label="Nama Bisnis" className="md:col-span-2">
+          <input
+            name="business_name"
+            value={form.business_name}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="PT Maju Bersama"
+          />
+        </Field>
+      </div>
+
+      <Field label="Keahlian">
+        <textarea
+          name="skills"
+          value={form.skills}
+          onChange={handleChange}
+          className={textareaCls}
+          placeholder="Digital marketing, UI/UX, public speaking..."
+        />
+      </Field>
+
+      <Field label="Kebutuhan Saat Ini">
+        <textarea
+          name="current_needs"
+          value={form.current_needs}
+          onChange={handleChange}
+          className={textareaCls}
+          placeholder="Mencari relasi bisnis, investor, atau partner..."
+        />
+      </Field>
+
+      <div className="flex justify-between">
         <BackButton onClick={() => setCurrentStep(1)} />
+
         <StepButton onClick={() => setCurrentStep(3)}>
-          Lanjutkan <ArrowRight size={16} />
+          Lanjutkan
+          <ArrowRight size={16} />
         </StepButton>
       </div>
     </div>
   )
 }
 
-function Step3({ form, handleChange, setCurrentStep }: any) {
+/* ================= STEP 3 ================= */
+
+function Step3({ form, setForm, handleChange, handleTemplateUpload, setCurrentStep }: any) {
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <Card icon={<Target size={18} strokeWidth={1.75} />} title="Minat & Tujuan" desc="Apa yang ingin Anda capai bersama komunitas?">
-        <div className="space-y-4">
-          <Field label="Minat">
-            <textarea name="interests" value={form.interests} onChange={handleChange} placeholder="Mis: AI, startup, investasi, sustainability, kuliner..." className={textareaCls} />
-          </Field>
-          <Field label="Tujuan Bergabung">
-            <textarea name="join_purpose" value={form.join_purpose} onChange={handleChange} placeholder="Mis: Memperluas jaringan bisnis, berbagi pengalaman, kolaborasi proyek..." className={`${textareaCls} min-h-[110px]`} />
-          </Field>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Minat & Tujuan
+        </h2>
+        <p className="text-sm text-gray-500">
+          Ceritakan minat Anda dan tujuan bergabung dengan komunitas.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5">
+        <Field label="Minat / Ketertarikan">
+          <input
+            name="interests"
+            value={form.interests}
+            onChange={handleChange}
+            className={inputCls}
+            placeholder="Misal: Teknologi, Bisnis, Desain, Sosial..."
+          />
+        </Field>
+
+        <Field label="Tujuan Bergabung (Join Purpose)">
+          <textarea
+            name="join_purpose"
+            value={form.join_purpose}
+            onChange={handleChange}
+            className={textareaCls}
+            placeholder="Apa yang ingin Anda capai dengan bergabung di Hablun Community?"
+          />
+        </Field>
+      </div>
+
+      <hr className="border-gray-100" />
+
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Publikasi Produk
+        </h2>
+        <p className="text-sm text-gray-500 mb-5">
+          Program khusus bagi anggota yang memiliki usaha.
+        </p>
+
+        {/* HAS BUSINESS */}
+        <div className="p-5 border border-gray-100 rounded-2xl bg-gray-50 mb-5">
+          <p className="font-medium text-gray-700 mb-3">Apakah Anda memiliki usaha?</p>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setForm((prev: any) => ({
+                  ...prev,
+                  has_business: "yes",
+                }))
+              }
+              className={`flex-1 py-2.5 rounded-xl border transition-all font-medium ${
+                form.has_business === "yes"
+                  ? "bg-islamic-green-600 border-islamic-green-600 text-white shadow-md"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-islamic-green-300"
+              }`}
+            >
+              Ya, punya
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setForm((prev: any) => ({
+                  ...prev,
+                  has_business: "no",
+                  publish_to_umkm: "",
+                  umkm_template_file: "",
+                }))
+              }
+              className={`flex-1 py-2.5 rounded-xl border transition-all font-medium ${
+                form.has_business === "no"
+                  ? "bg-gray-800 border-gray-800 text-white shadow-md"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              Tidak
+            </button>
+          </div>
         </div>
-      </Card>
 
-      <div className="flex gap-3">
-        <BackButton onClick={() => setCurrentStep(2)} />
-        <StepButton onClick={() => setCurrentStep(4)}>
-          Lanjutkan <ArrowRight size={16} />
-        </StepButton>
-      </div>
-    </div>
-  )
-}
+        {/* ================= ONLY SHOW IF YES ================= */}
+        {form.has_business === "yes" && (
+          <div className="space-y-5 border border-islamic-green-100 rounded-2xl p-5 bg-white">
+            
+            {/* INFO */}
+            <div className="flex items-start gap-3 bg-blue-50 p-4 rounded-xl text-blue-800">
+              <Globe2 className="shrink-0 mt-0.5" size={18} />
+              <p className="text-sm leading-relaxed">
+                Anda bisa mempublikasikan usaha Anda ke direktori <strong>Produk Hablun</strong> dengan mengisi template yang kami sediakan.
+              </p>
+            </div>
 
-function Step4({ form, handleKtpUpload, ktpReady, loading, setCurrentStep }: any) {
-  return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* PUBLISH */}
+            <div>
+              <p className="font-medium text-gray-700 mb-3">
+                Apakah Anda ingin mempublikasikan usaha Anda sekarang?
+              </p>
 
-      {/* KTP Upload */}
-      <Card icon={<CreditCard size={18} strokeWidth={1.75} />} title="Upload KTP" desc="Untuk verifikasi identitas akun Anda">
-        <label htmlFor="ktp-upload" className="block cursor-pointer">
-          <div
-            className={`p-8 rounded-2xl border-2 border-dashed text-center transition-all ${ktpReady ? "border-islamic-green-400 bg-islamic-green-50" : "border-gray-200 bg-gray-50 hover:border-islamic-green-300 hover:bg-islamic-green-50/50"}`}
-          >
-            {ktpReady ? (
-              <div className="flex items-center justify-center gap-2 text-islamic-green-700">
-                <CheckCircle2 size={20} strokeWidth={1.75} />
-                <span className="text-sm font-semibold">File KTP berhasil diupload</span>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev: any) => ({
+                      ...prev,
+                      publish_to_umkm: "yes",
+                    }))
+                  }
+                  className={`flex-1 py-2.5 rounded-xl border transition-all font-medium ${
+                    form.publish_to_umkm === "yes"
+                      ? "bg-islamic-green-600 border-islamic-green-600 text-white shadow-md"
+                      : "bg-white border-gray-200 text-gray-600 hover:border-islamic-green-300"
+                  }`}
+                >
+                  Ya, publikasi
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev: any) => ({
+                      ...prev,
+                      publish_to_umkm: "no",
+                    }))
+                  }
+                  className={`flex-1 py-2.5 rounded-xl border transition-all font-medium ${
+                    form.publish_to_umkm === "no"
+                      ? "bg-gray-800 border-gray-800 text-white shadow-md"
+                      : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  Nanti saja
+                </button>
               </div>
-            ) : (
-              <>
-                <CreditCard size={32} strokeWidth={1.25} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-700">Klik untuk upload KTP</p>
-                <p className="text-xs text-gray-400 mt-1">Format JPG, PNG, PDF · Maks 5MB</p>
-              </>
+            </div>
+
+            {/* ================= TEMPLATE FLOW ================= */}
+            {form.publish_to_umkm === "yes" && (
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                
+                {/* FLOW STEPS */}
+                <div className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-100">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Alur Publikasi:</p>
+                  <Flow icon={<Download size={16} className="text-islamic-green-600"/>} text="1. Download template UMKM" />
+                  <Flow icon={<FileText size={16} className="text-islamic-green-600"/>} text="2. Isi data usaha Anda di dalam file" />
+                  <Flow icon={<Upload size={16} className="text-islamic-green-600"/>} text="3. Upload kembali file yang sudah diisi" />
+                  <Flow icon={<Mail size={16} className="text-islamic-green-600"/>} text="4. Tunggu review dari tim Hablun" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* DOWNLOAD BUTTON */}
+                  <a
+                    href="/templates/template-produk-hablun.docx"
+                    download
+                    className="flex justify-center items-center gap-2 bg-white border-2 border-islamic-green-600 text-islamic-green-700 hover:bg-islamic-green-50 px-4 py-3 rounded-xl font-medium transition-all"
+                  >
+                    <Download size={18} />
+                    Download Template
+                  </a>
+
+                  {/* UPLOAD BUTTON */}
+                  <label className="cursor-pointer h-full">
+                    <div className="flex justify-center items-center gap-2 bg-islamic-green-50 border border-dashed border-islamic-green-400 text-islamic-green-700 hover:border-islamic-green-600 hover:bg-islamic-green-100 px-4 py-3 rounded-xl font-medium transition-all h-full">
+                      <Upload size={18} />
+                      {form.umkm_template_file ? (
+                        <span className="truncate max-w-[150px]">
+                          {/* Mengambil nama file dari akhir URL agar terlihat rapi */}
+                          {form.umkm_template_file.split('/').pop() || "Template Terupload"}
+                        </span>
+                      ) : (
+                        <span>Upload Template</span>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".doc,.docx,.pdf"
+                      onChange={handleTemplateUpload}
+                    />
+                  </label>
+                </div>
+              </div>
             )}
           </div>
-        </label>
-        <input id="ktp-upload" type="file" accept="image/*,.pdf" onChange={handleKtpUpload} className="hidden" />
-      </Card>
+        )}
+      </div>
 
-      {/* Summary */}
-      <Card icon={<ClipboardList size={18} strokeWidth={1.75} />} title="Ringkasan Profil" desc="Pastikan semua data sudah benar sebelum menyimpan">
-        <div className="divide-y divide-gray-50">
-          {[
-            { key: "Nama",      val: form.full_name },
-            { key: "Username",  val: form.username },
-            { key: "WhatsApp",  val: form.whatsapp },
-            { key: "Domisili",  val: form.domicile },
-            { key: "Profesi",   val: form.profession },
-            { key: "Bisnis",    val: form.business_name },
-            { key: "Industri",  val: form.industry },
-            { key: "Minat",     val: form.interests },
-          ].map(({ key, val }) => (
-            <div key={key} className="flex justify-between items-start py-3 gap-4">
-              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 shrink-0 pt-0.5">{key}</span>
-              <span className={`text-sm text-right ${val ? "text-gray-800" : "text-gray-300 italic"}`}>{val || "—"}</span>
+      {/* NAV */}
+      <div className="flex justify-between pt-4">
+        <BackButton onClick={() => setCurrentStep(2)} />
+
+        <StepButton onClick={() => setCurrentStep(4)}>
+          Lanjutkan
+          <ArrowRight size={16} />
+        </StepButton>
+      </div>
+    </div>
+  )
+}
+
+/* ================= SIMPLE FLOW ITEM ================= */
+
+function Flow({ icon, text }: any) {
+  return (
+    <div className="flex items-center gap-3 text-sm text-gray-700">
+      {icon}
+      <span>{text}</span>
+    </div>
+  )
+}
+
+/* ================= STEP 4 ================= */
+
+function Step4({
+  form,
+  handleKtpUpload,
+  ktpReady,
+  loading,
+  setCurrentStep,
+}: any) {
+  return (
+    <div className="space-y-8">
+
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Verifikasi Akun
+        </h2>
+
+        <p className="text-sm text-gray-500">
+          Upload dokumen identitas untuk proses verifikasi akun.
+        </p>
+      </div>
+
+      <label htmlFor="ktp-upload" className="cursor-pointer block">
+        <div
+          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+            ktpReady
+              ? "border-islamic-green-400 bg-islamic-green-50"
+              : "border-gray-200 hover:border-islamic-green-300"
+          }`}
+        >
+          {ktpReady ? (
+            <div className="flex items-center justify-center gap-2 text-islamic-green-700">
+              <CheckCircle2 size={20} />
+              <span className="font-medium">
+                Dokumen berhasil diupload
+              </span>
             </div>
-          ))}
-        </div>
-      </Card>
+          ) : (
+            <>
+              <CreditCard
+                className="mx-auto text-gray-300 mb-3"
+                size={36}
+              />
 
-      <div className="space-y-3">
+              <p className="font-semibold text-gray-800">
+                Upload KTP
+              </p>
+
+              <p className="text-sm text-gray-400 mt-1">
+                JPG, PNG, atau PDF maksimal 5MB
+              </p>
+            </>
+          )}
+        </div>
+      </label>
+
+      <input
+        id="ktp-upload"
+        type="file"
+        className="hidden"
+        accept="image/*,.pdf"
+        onChange={handleKtpUpload}
+      />
+
+      {/* SUMMARY */}
+      <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <ClipboardList size={18} />
+          <p className="font-semibold text-gray-800">
+            Ringkasan Profil
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Summary label="Nama" value={form.full_name} />
+          <Summary label="Username" value={form.username} />
+          <Summary label="WhatsApp" value={form.whatsapp} />
+          <Summary label="Profesi" value={form.profession} />
+          <Summary label="Bisnis" value={form.business_name} />
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        <BackButton onClick={() => setCurrentStep(3)} />
+
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-islamic-green-600 to-islamic-green-700 text-white font-semibold px-6 py-3 rounded-xl shadow hover:shadow-lg transition-all disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-islamic-green-600 to-islamic-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
         >
-          {loading ? <Loader2 className="animate-spin" size={16} /> : "Simpan Profil"}
+          {loading ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <>
+              Simpan Profil
+              <CheckCircle2 size={18} />
+            </>
+          )}
         </button>
-
-        <BackButton onClick={() => setCurrentStep(3)} fullWidth />
       </div>
     </div>
   )
 }
 
-/* ======================== UI HELPER COMPONENTS ======================== */
-
-function Card({ icon, title, desc, children }: any) {
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-      <div className="flex items-center gap-3">
-        {icon}
-        <div>
-          <p className="font-semibold text-gray-800">{title}</p>
-          {desc && <p className="text-xs text-gray-400">{desc}</p>}
-        </div>
-      </div>
-      <div>{children}</div>
-    </div>
-  )
-}
+/* ================= UI ================= */
 
 function Field({ label, required, className, children }: any) {
   return (
     <div className={className}>
-      <label className="text-xs font-medium text-gray-500">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="block text-sm font-medium text-gray-600 mb-2">
+        {label}
+        {required && <span className="text-red-500"> *</span>}
       </label>
+
       {children}
+    </div>
+  )
+}
+
+function Summary({ label, value }: any) {
+  return (
+    <div className="flex justify-between gap-5 text-sm">
+      <span className="text-gray-400">{label}</span>
+      <span className="text-gray-800 font-medium text-right">
+        {value || "-"}
+      </span>
     </div>
   )
 }
@@ -418,61 +831,64 @@ function StepButton({ children, onClick }: any) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-islamic-green-600 hover:bg-islamic-green-700 text-white font-medium shadow transition-all"
+      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-islamic-green-600 hover:bg-islamic-green-700 text-white font-semibold transition-all"
     >
       {children}
     </button>
   )
 }
 
-function BackButton({ onClick, fullWidth }: any) {
+function BackButton({ onClick }: any) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all ${fullWidth ? "w-full justify-center" : ""}`}
+      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all"
     >
-      <ArrowLeft size={16} /> Kembali
+      <ArrowLeft size={16} />
+      Kembali
     </button>
   )
 }
 
-function StepIndicator({ steps, currentStep, setCurrentStep }: any) {
+function StepIndicator({ steps, currentStep }: any) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      {steps.map((step: any, i: number) => {
+    <div className="flex items-center justify-between gap-2">
+      {steps.map((step: any, index: number) => {
         const Icon = step.icon
-        const isActive = currentStep === step.id
-        const isDone = currentStep > step.id
+
+        const active = currentStep === step.id
+        const done = currentStep > step.id
+
         return (
           <div key={step.id} className="flex items-center flex-1">
-            <button
-              type="button"
-              onClick={() => isDone && setCurrentStep(step.id)}
-              className={`flex flex-col items-center gap-1.5 group ${isDone ? "cursor-pointer" : "cursor-default"}`}
-            >
+
+            <div className="flex flex-col items-center mx-auto">
               <div
-                className={`
-                  w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
-                  ${isActive
-                    ? "bg-islamic-green-600 text-white shadow-lg shadow-islamic-green-600/30 scale-110"
-                    : isDone
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  active
+                    ? "bg-islamic-green-600 text-white shadow-lg"
+                    : done
                     ? "bg-islamic-green-100 text-islamic-green-700"
-                    : "bg-white border-2 border-gray-200 text-gray-400"
-                  }
-                `}
+                    : "bg-gray-100 text-gray-400"
+                }`}
               >
-                {isDone ? <Check size={16} strokeWidth={2.5} /> : <Icon size={16} strokeWidth={1.75} />}
+                {done ? <Check size={18} /> : <Icon size={18} />}
               </div>
-              <span className={`text-[11px] font-medium tracking-wide hidden sm:block transition-colors ${isActive ? "text-islamic-green-700" : isDone ? "text-islamic-green-500" : "text-gray-400"}`}>
+
+              <span
+                className={`mt-2 text-xs font-medium ${
+                  active
+                    ? "text-islamic-green-700"
+                    : "text-gray-400"
+                }`}
+              >
                 {step.label}
               </span>
-            </button>
+            </div>
 
-            {i < steps.length - 1 && (
-              <div className="flex-1 h-px mx-2 mb-5 sm:mb-6 relative overflow-hidden bg-gray-200 rounded-full">
-                <div className="absolute inset-y-0 left-0 bg-islamic-green-400 rounded-full transition-all duration-500" style={{ width: currentStep > step.id ? "100%" : "0%" }} />
-              </div>
+            {index < steps.length - 1 && (
+              <div className="flex-1 h-px bg-gray-200" />
             )}
           </div>
         )
@@ -481,10 +897,8 @@ function StepIndicator({ steps, currentStep, setCurrentStep }: any) {
   )
 }
 
-/* ======================== INPUT / CARD CONSTANTS ======================== */
-
 const inputCls =
-  "w-full px-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-300 outline-none focus:bg-white focus:border-islamic-green-500 focus:ring-2 focus:ring-islamic-green-500/10 transition-all"
+  "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-islamic-green-500 focus:ring-4 focus:ring-islamic-green-500/10 transition-all"
 
 const textareaCls =
-  "w-full px-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-300 outline-none focus:bg-white focus:border-islamic-green-500 focus:ring-2 focus:ring-islamic-green-500/10 transition-all resize-y min-h-[90px] leading-relaxed"
+  "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none min-h-[120px] resize-none focus:border-islamic-green-500 focus:ring-4 focus:ring-islamic-green-500/10 transition-all"

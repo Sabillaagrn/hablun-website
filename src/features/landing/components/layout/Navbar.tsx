@@ -23,6 +23,7 @@ export default function Navbar() {
       { label: "Syarat & Ketentuan", href: "/terms" },
       { label: "Kebijakan Privasi", href: "/privacy" },
       { label: "Kontak Kami", href: "/kontak" },
+      { label: "Produk Hablun", href: "/umkm" },
     ]
     if (user) items.push({ label: "Download", href: "/download" })
     return items

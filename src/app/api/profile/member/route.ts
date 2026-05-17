@@ -2,11 +2,15 @@ import { NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 import { supabaseClient } from "../../../../../lib/supabase-client"
+import { Resend } from "resend"
 
 interface JwtPayload {
   id: string
   email: string
 }
+
+// Inisialisasi Resend
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
   try {
@@ -64,6 +68,12 @@ export async function POST(req: Request) {
           join_purpose: body.join_purpose || "",
           profile_photo: body.profile_photo || "",
           ktp_file: body.ktp_file || "",
+          
+          // Field Baru untuk UMKM
+          has_business: body.has_business || "",
+          publish_to_umkm: body.publish_to_umkm || "",
+          umkm_submission_type: body.umkm_submission_type || "",
+          umkm_template_file: body.umkm_template_file || "",
         },
         { onConflict: "user_id" }
       )
@@ -107,6 +117,63 @@ export async function POST(req: Request) {
     }
 
     console.log("Profile completed successfully for:", decoded.id)
+
+    // =========================
+    // SEND RESEND EMAIL (UMKM)
+    // =========================
+    if (
+      body.has_business === "yes" &&
+      body.publish_to_umkm === "yes" &&
+      body.umkm_template_file
+    ) {
+      try {
+        await resend.emails.send({
+          // Mengambil dari environment variables dengan fallback nilai default
+          from: process.env.RESEND_FROM_EMAIL || "Hablun System <no-reply@hablunhub.com>",
+          to: process.env.HABLUN_EMAIL || "marketing@hablunhub.com",
+          subject: `Pengajuan UMKM Baru: ${body.business_name} - ${body.full_name}`,
+          html: `
+            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #16a34a; margin-bottom: 5px;">Pengajuan Publikasi UMKM Baru</h2>
+              <p style="color: #555;">Halo Tim Hablun,</p>
+              <p style="color: #555;">Ada member baru yang mensubmit dokumen template untuk direktori UMKM. Berikut detailnya:</p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Nama Lengkap</strong></td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.full_name} (@${body.username})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>No WhatsApp</strong></td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.whatsapp}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Nama Bisnis</strong></td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.business_name}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Industri</strong></td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.industry}</td>
+                </tr>
+              </table>
+
+              <div style="margin-top: 30px; text-align: center;">
+                <a href="${body.umkm_template_file}" target="_blank" style="background-color: #16a34a; color: white; padding: 14px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+                  📥 Download / Lihat Dokumen Template
+                </a>
+              </div>
+              
+              <p style="margin-top: 40px; font-size: 12px; color: #aaa; text-align: center;">
+                Email ini di-generate otomatis oleh sistem website Hablun.
+              </p>
+            </div>
+          `,
+        })
+        console.log("UMKM submission email sent to admin.")
+      } catch (emailError) {
+        console.error("Failed to send UMKM email via Resend:", emailError)
+      }
+    }
 
     return NextResponse.json({ success: true })
 
