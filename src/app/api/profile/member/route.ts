@@ -1,16 +1,15 @@
+export const dynamic = "force-dynamic"
+
 import { NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 import { supabaseClient } from "../../../../../lib/supabase-client"
-import { Resend } from "resend"
+import { resend } from "../../../../../lib/resend-client"
 
 interface JwtPayload {
   id: string
   email: string
 }
-
-// Inisialisasi Resend
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
   try {

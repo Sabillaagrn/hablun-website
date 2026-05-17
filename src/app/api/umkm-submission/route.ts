@@ -1,12 +1,10 @@
+export const dynamic = "force-dynamic"
+
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import jwt from "jsonwebtoken"
 import { supabaseClient } from "../../../../lib/supabase-client"
-import { Resend } from "resend"
-
-const resend = new Resend(
-  process.env.RESEND_API_KEY
-)
+import { resend } from "../../../../lib/resend-client"
 
 export async function POST(req: Request) {
   try {
