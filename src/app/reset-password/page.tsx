@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import {
   Lock,
@@ -9,7 +9,8 @@ import {
   Loader2,
 } from "lucide-react"
 
-export default function ResetPasswordPage() {
+// 1. Pindahkan seluruh logika utama ke komponen internal ini
+function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -91,15 +92,12 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white px-4">
-
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-
         {/* TITLE */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
             Reset Password
           </h1>
-
           <p className="text-gray-500 mt-2">
             Buat password baru akunmu
           </p>
@@ -110,14 +108,12 @@ export default function ResetPasswordPage() {
           onSubmit={handleSubmit}
           className="space-y-4"
         >
-
           {/* PASSWORD */}
           <div className="relative">
             <Lock
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               size={20}
             />
-
             <input
               type={
                 showPassword
@@ -197,7 +193,6 @@ export default function ResetPasswordPage() {
                 size={18}
               />
             )}
-
             {loading
               ? "Loading..."
               : "Simpan Password Baru"}
@@ -205,5 +200,20 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+// 2. Komponen utama halaman sekarang aman dibungkus dengan Suspense
+export default function ResetPasswordPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
+          <Loader2 className="animate-spin text-green-600" size={32} />
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
