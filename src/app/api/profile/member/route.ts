@@ -127,10 +127,14 @@ export async function POST(req: Request) {
     ) {
       try {
         await resend.emails.send({
-          // Mengambil dari environment variables dengan fallback nilai default
           from: process.env.RESEND_FROM_EMAIL || "Hablun System <no-reply@hablunhub.com>",
-          to: process.env.HABLUN_EMAIL || "marketing@hablunhub.com",
-          subject: `Pengajuan UMKM Baru: ${body.business_name} - ${body.full_name}`,
+          
+          // 👇 REVISI DI SINI: Pecah string menjadi array dan bersihkan spasi
+          to: (process.env.HABLUN_EMAIL || "marketing@hablunhub.com")
+                .split(",")
+                .map((email) => email.trim()),
+          
+          subject: `Pengajuan UMKM Baru: ${body.business_name || "Tanpa Nama Bisnis"} - ${body.full_name || "Tanpa Nama"}`,
           html: `
             <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: #16a34a; margin-bottom: 5px;">Pengajuan Publikasi UMKM Baru</h2>
@@ -140,19 +144,19 @@ export async function POST(req: Request) {
               <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Nama Lengkap</strong></td>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.full_name} (@${body.username})</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.full_name || "-"} (@${body.username || "-"})</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>No WhatsApp</strong></td>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.whatsapp}</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.whatsapp || "-"}</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Nama Bisnis</strong></td>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.business_name}</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.business_name || "-"}</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;"><strong>Industri</strong></td>
-                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.industry}</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${body.industry || "-"}</td>
                 </tr>
               </table>
 

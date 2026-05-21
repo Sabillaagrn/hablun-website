@@ -13,83 +13,76 @@ import {
 } from "lucide-react"
 
 export default function UmkmSubmissionPage() {
-  const [file, setFile] =
-    useState<File | null>(null)
-
-  const [loading, setLoading] =
-    useState(false)
-
-  const [success, setSuccess] =
-    useState(false)
-
-  const [error, setError] = useState<
-    string | null
-  >(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
     try {
-        setLoading(true)
-        setError(null)
+      setLoading(true)
+      setError(null)
 
-        if (!file) {
+      if (!file) {
         throw new Error(
-            "Silakan upload template Pengajuan Produk terlebih dahulu."
+          "Silakan upload template Pengajuan Produk terlebih dahulu."
         )
-        }
+      }
 
-        // =========================
-        // UPLOAD FILE
-        // =========================
-        const formData = new FormData()
+      // =========================
+      // UPLOAD FILE
+      // =========================
+      const formData = new FormData()
 
-        formData.append("file", file)
-        formData.append("type", "umkm_template_file") // FIX INI
+      formData.append("file", file)
+      formData.append("type", "umkm_template_file") 
 
-        const uploadRes = await fetch("/api/upload", {
+      const uploadRes = await fetch("/api/upload", {
         method: "POST",
         body: formData,
-        })
+      })
 
-        const uploadData = await uploadRes.json()
+      const uploadData = await uploadRes.json()
 
-        if (!uploadRes.ok) {
+      if (!uploadRes.ok) {
         throw new Error(
-            uploadData.error || "Upload file gagal"
+          uploadData.error || "Upload file gagal"
         )
-        }
+      }
 
-        // =========================
-        // SUBMIT UMKM
-        // =========================
-        const res = await fetch("/api/umkm-submission", {
+      // =========================
+      // SUBMIT UMKM
+      // =========================
+      const res = await fetch("/api/umkm-submission", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            umkm_template_file: uploadData.url,
+          publish_to_umkm: "yes", // <--- FIX UTAMA: Beri tahu API bahwa ini "yes"
+          umkm_template_file: uploadData.url,
         }),
-        })
+      })
 
-        const data = await res.json()
+      const data = await res.json()
 
-        if (!res.ok) {
+      if (!res.ok) {
         throw new Error(
-            data.error || "Gagal mengirim pengajuan"
+          data.error || "Gagal mengirim pengajuan"
         )
-        }
+      }
 
-        // =========================
-        // SUCCESS STATE FIX
-        // =========================
-        setSuccess(true)
-        setFile(null) // reset file
+      // =========================
+      // SUCCESS STATE FIX
+      // =========================
+      setSuccess(true)
+      setFile(null) 
     } catch (err: any) {
-        setError(err.message)
+      setError(err.message)
     } finally {
-        setLoading(false)
+      setLoading(false)
     }
-    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f6f8f7] px-5 py-10 md:px-10 lg:px-20">

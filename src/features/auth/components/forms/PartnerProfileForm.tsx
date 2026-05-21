@@ -573,27 +573,31 @@ export default function PartnerProfileForm({
                       </button>
 
                       <button
-                        type="button"
-                        onClick={() =>
-                          setForm((prev) => ({
-                            ...prev,
-                            publish_to_umkm:
-                              "no",
-                            umkm_submission_type:
-                              "",
-                            umkm_template_file:
-                              "",
-                          }))
-                        }
-                        className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
-                          form.publish_to_umkm ===
-                          "no"
-                            ? "border-gray-800 bg-gray-800 text-white"
-                            : "border-gray-200 bg-white text-gray-600"
-                        }`}
-                      >
-                        Tidak sekarang
-                      </button>
+                      type="button"
+                      onClick={() => {
+                        // 1. Reset state form publikasi
+                        setForm((prev) => ({
+                          ...prev,
+                          publish_to_umkm: "no",
+                          umkm_submission_type: "",
+                          umkm_template_file: "",
+                        }));
+                        
+                        // 2. Bersihkan teks nama file agar UI sinkron
+                        setTemplateName(null);
+
+                        // 3. (Opsional) Bersihkan juga elemen input file HTML jika ada sisa cache browser
+                        const fileInput = document.getElementById("template-upload") as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
+                      }}
+                      className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
+                        form.publish_to_umkm === "no"
+                          ? "border-gray-800 bg-gray-800 text-white"
+                          : "border-gray-200 bg-white text-gray-600"
+                      }`}
+                    >
+                      Tidak sekarang
+                    </button>
                     </div>
                   </div>
 

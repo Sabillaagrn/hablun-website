@@ -4,10 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Store, ArrowRight } from "lucide-react"
 
-// Interface disesuaikan untuk kebutuhan pengecekan
 interface ProfileData {
-  has_business: string
-  publish_to_umkm: string
+  publish_to_umkm?: string
 }
 
 interface User {
@@ -22,24 +20,30 @@ export default function UmkmReminder() {
   useEffect(() => {
     const checkReminder = async () => {
       try {
-        const res = await fetch("/api/me")
+        const res = await fetch("/api/me", {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache"
+          }
+        })
         const data = await res.json()
 
         const user: User = data.user
-        // Fleksibel: Mengambil dari objek partner_profile atau member_profile
         const profile: ProfileData = data.partner_profile || data.member_profile
+
+        // DEBUGGING: Cek console browser untuk memastikan data terbaca dengan benar
+        console.log("DEBUG REMINDER:", { role: user?.role, profile })
 
         // 1. Cek apakah role user adalah partner ATAU member
         const isEligibleRole = user?.role === "partner" || user?.role === "member"
         
-        // 2. Cek apakah dia punya bisnis
-        const hasBusiness = profile?.has_business === "yes"
-        
-        // 3. Cek apakah dia memilih "Nanti saja" (belum publish)
-        const notPublished = profile?.publish_to_umkm === "no"
+        // 2. Cek status publikasi. Jika "no", berarti dia punya bisnis tapi menunda upload.
+        // Kita buang pengecekan has_business agar logikanya tidak terblokir oleh perbedaan tipe data
+        const deferredPublish = profile?.publish_to_umkm === "no"
 
-        // Jika KETIGA syarat terpenuhi, tampilkan reminder
-        if (isEligibleRole && hasBusiness && notPublished) {
+        // Tampilkan HANYA jika role-nya sesuai dan dia benar-benar menunda (status "no")
+        if (isEligibleRole && deferredPublish) {
           setShowReminder(true)
         } else {
           setShowReminder(false)

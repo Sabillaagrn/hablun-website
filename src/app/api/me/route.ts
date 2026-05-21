@@ -8,26 +8,17 @@ import { supabaseClient } from "../../../../lib/supabase-client"
 export async function GET() {
   try {
     const cookieStore = await cookies()
-
     const token = cookieStore.get("session")?.value
 
     if (!token) {
-      return NextResponse.json({
-        user: null,
-      })
+      return NextResponse.json({ user: null })
     }
 
     let decoded: any
-
     try {
-      decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET!
-      )
+      decoded = jwt.verify(token, process.env.JWT_SECRET!)
     } catch {
-      return NextResponse.json({
-        user: null,
-      })
+      return NextResponse.json({ user: null })
     }
 
     const userId = decoded.id
@@ -35,21 +26,14 @@ export async function GET() {
     // =========================
     // USER
     // =========================
-    const {
-      data: user,
-      error: userError,
-    } = await supabaseClient
+    const { data: user, error: userError } = await supabaseClient
       .from("users")
-      .select(
-        "id, email, role, is_profile_complete"
-      )
+      .select("id, email, role, is_profile_complete")
       .eq("id", userId)
       .maybeSingle()
 
     if (userError || !user) {
-      return NextResponse.json({
-        user: null,
-      })
+      return NextResponse.json({ user: null })
     }
 
     let fullName = ""
@@ -57,60 +41,53 @@ export async function GET() {
     // =========================
     // PROFILES VARIABLES
     // =========================
-    // Buat variabel untuk menampung kedua jenis profil
     let partnerProfile: any = null
     let memberProfile: any = null 
 
     // =========================
     // PROFILE NAME & DATA
     // =========================
-    if (
-      user.is_profile_complete &&
-      user.role
-    ) {
+    // FIX: Hanya cek user.role, HAPUS user.is_profile_complete agar sistem 
+    // selalu berani mengambil data profil (termasuk status publish_to_umkm)
+    if (user.role) {
       if (user.role === "member") {
-        const { data } =
-          await supabaseClient
-            .from("member_profiles")
-            // FIX 2: Tambahkan field has_business & publish_to_umkm agar terbaca oleh Frontend
-            .select("username, has_business, publish_to_umkm") 
-            .eq("user_id", user.id)
-            .maybeSingle()
+        const { data, error } = await supabaseClient
+          .from("member_profiles")
+          .select("username, has_business, publish_to_umkm") 
+          .eq("user_id", user.id)
+          .maybeSingle()
+        
+        if (error) console.error("Error get member profile:", error)
 
         fullName = data?.username?.trim() || ""
-        memberProfile = data // Simpan data ke variabel
+        memberProfile = data 
       }
 
-      else if (
-        user.role === "partner"
-      ) {
-        const { data } =
-          await supabaseClient
-            .from("partner_profiles")
-            // Pastikan field ini juga ada di tabel partner_profiles jika partner punya flow yang sama
-            .select(`
-              legal_name,
-              has_business,
-              publish_to_umkm,
-              umkm_status
-            `)
-            .eq("user_id", user.id)
-            .maybeSingle()
+      else if (user.role === "partner") {
+        const { data, error } = await supabaseClient
+          .from("partner_profiles")
+          // FIX: Hapus 'has_business' karena tidak ada di tabel partner_profiles
+          .select(`
+            legal_name,
+            publish_to_umkm
+          `)
+          .eq("user_id", user.id)
+          .maybeSingle()
+        
+        if (error) console.error("Error get partner profile:", error)
 
         fullName = data?.legal_name?.trim() || ""
-        partnerProfile = data // Simpan data ke variabel
+        partnerProfile = data 
       }
 
-      else if (
-        user.role ===
-        "community_admin"
-      ) {
-        const { data } =
-          await supabaseClient
-            .from("community_profiles")
-            .select("community_name")
-            .eq("user_id", user.id)
-            .maybeSingle()
+      else if (user.role === "community_admin") {
+        const { data, error } = await supabaseClient
+          .from("community_profiles")
+          .select("community_name")
+          .eq("user_id", user.id)
+          .maybeSingle()
+        
+        if (error) console.error("Error get community profile:", error)
 
         fullName = data?.community_name?.trim() || ""
       }
@@ -134,20 +111,12 @@ export async function GET() {
         is_profile_complete: user.is_profile_complete,
         name: fullName,
       },
-
-      // FIX 3: Kirimkan kedua profil, biarkan frontend yang memilih mana yang dipakai
       partner_profile: partnerProfile,
       member_profile: memberProfile,
     })
 
   } catch (err) {
-    console.error(
-      "GET /api/me error:",
-      err
-    )
-
-    return NextResponse.json({
-      user: null,
-    })
+    console.error("GET /api/me error:", err)
+    return NextResponse.json({ user: null })
   }
 }
