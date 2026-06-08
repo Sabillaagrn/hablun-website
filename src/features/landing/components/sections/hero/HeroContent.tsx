@@ -38,7 +38,7 @@ export default function HeroContent() {
       {/* CTA - Separated for ordering */}
       <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2 sm:pt-4 animate-fade-up delay-500 order-3 lg:order-2">
         <Link
-          href="#"
+          href="/register"
           className="group relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-islamic-green-700 text-white font-semibold shadow-lg sm:shadow-xl overflow-hidden transition-all duration-300 hover:scale-[1.05] text-center"
         >
           <span className="relative z-10">Bergabung</span>
